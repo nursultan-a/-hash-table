@@ -2,6 +2,7 @@
 #define __HASHTABLE__
 
 #include "HashUtils.h"
+#include <math.h>
 
 // Do not modify the public interface of this class.
 // Otherwise, your code will note compile!
@@ -83,7 +84,7 @@ HashTable<T>::HashTable()
 {
     // TODO: CONSTRUCTOR
     _capacity = NextCapacity(0);
-    std::cout << "capacity is initialized and its value is " << _capacity << std::endl;
+    // std::cout << "capacity is initialized and its value is " << _capacity << std::endl;
 
     _size = 0;
 
@@ -106,8 +107,10 @@ template <class T>
 HashTable<T>::HashTable(const HashTable<T> &rhs)
 {
     // TODO: COPY CONSTRUCTOR
-    this->_capacity = rhs->_capacity;
-    this->_size = rhs->_size;
+    this->_capacity = rhs._capacity;
+    this->_size = rhs._size;
+
+    this->_table = new Bucket[_capacity];
 
     for (int i = 0; i < _capacity; i++)
     {
@@ -117,10 +120,12 @@ HashTable<T>::HashTable(const HashTable<T> &rhs)
         // Initialize each entry of a Bucket
         for (int j = 0; j < 3; j++)
         {
-            _table[i].entries[j].key = Entry(rhs->_table[i].entries[j].key);
-            _table[i].entries[j].Value = Entry(rhs->_table[i].entries[j].Value);
-            _table[i].entries[j].Deleted = Entry(rhs->_table[i].entries[j].Deleted);
-            _table[i].entries[j].Active = Entry(rhs->_table[i].entries[j].Active);
+            _table[i].entries[j] = Entry();
+
+            _table[i].entries[j].Key = rhs._table[i].entries[j].Key;
+            _table[i].entries[j].Value = rhs._table[i].entries[j].Value;
+            _table[i].entries[j].Deleted = rhs._table[i].entries[j].Deleted;
+            _table[i].entries[j].Active = rhs._table[i].entries[j].Active;
         }
     }
 }
@@ -153,14 +158,14 @@ void HashTable<T>::Insert(std::string key, const T &value)
 
     // std::cout << "Insert with the key "<< key << std::endl;
 
-    double load_factor = (double)_size / (3 * _capacity);
-    std::cout << "load factory: " << load_factor << std::endl;
+    double load_factor = (double)_size / (3 * (double)_capacity);
+    // std::cout << "load factory: " << load_factor << std::endl;
 
     if (load_factor > 0.5)
     {
-        std::cout << "----------------------resizing" << std::endl;
+        // std::cout << "resizing" << std::endl;
         Resize(NextCapacity(_capacity));
-        std::cout << "resized ;" << std::endl;
+        // std::cout << "resized ;" << std::endl;
     }
     int index = Hash(key) % _capacity;
     // std::cout << "index: "<< index << std::endl;
@@ -173,26 +178,29 @@ void HashTable<T>::Insert(std::string key, const T &value)
         {
             _table[index].entries[i].Value = value;
             _table[index].entries[i].Active = true;
+            _table[index].entries[i].Deleted = false;
             update = true;
             bucket_full = false;
             _size++;
-            std::cout << "existed one updated" << std::endl;
+            return;
+            // std::cout << "existed one updated" << std::endl;
         }
     }
 
-    if (update != true && !bucket_full)
+    if (update != true)
     {
         for (int i = 0; i < 3; i++)
         {
             if (_table[index].entries[i].Active == false)
             {
-                std::cout << "normal inserted" << std::endl;
+                // std::cout << "normal inserted" << std::endl;
                 _table[index].entries[i].Value = value;
                 _table[index].entries[i].Key = key;
                 _table[index].entries[i].Active = true;
 
                 bucket_full = false;
                 _size++;
+                return;
                 break;
             }
         }
@@ -210,7 +218,7 @@ void HashTable<T>::Insert(std::string key, const T &value)
         while (bucket_full)
         {
             int index = (Hash(key) + h * h) % _capacity;
-            std::cout << "quadratic probing: " << h << std::endl;
+            // std::cout << "quadratic probing: " << h << std::endl;
             for (int k = 0; k < 3; k++)
             {
                 if (_table[index].entries[k].Active == false)
@@ -220,6 +228,7 @@ void HashTable<T>::Insert(std::string key, const T &value)
                     _table[index].entries[k].Active = true;
                     bucket_full = false;
                     _size++;
+                    return;
                     break;
                 }
             }
@@ -238,19 +247,19 @@ void HashTable<T>::Delete(std::string key)
 
     int h = 0;
     bool removed = false;
-    std::cout << "Delete function is called" << std::endl;
+    // std::cout << "Delete function is called" << std::endl;
 
     while (!removed && (h * h) < _capacity)
     {
         int index = (Hash(key) + h * h) % _capacity;
-        std::cout << "trying to remove with key " << index << std::endl;
+        // std::cout << "trying to remove with key " << index << std::endl;
 
         for (int k = 0; k < 3; k++)
         {
-            std::cout << _table[index].entries[k].Key << " ? " << key << std::endl;
+            // std::cout << _table[index].entries[k].Key << " ? " << key << std::endl;
             if (_table[index].entries[k].Key == key)
             {
-                std::cout << key << " is in hash table" << std::endl;
+                // std::cout << key << " is in hash table" << std::endl;
                 _table[index].entries[k] = Entry();
                 _table[index].entries[k].Active = false;
                 _table[index].entries[k].Deleted = true;
@@ -264,11 +273,13 @@ void HashTable<T>::Delete(std::string key)
 
     if (removed)
     {
-        std::cout << key << " is removed" << std::endl;
+        ;
+        // std::cout << key << " is removed" << std::endl;
     }
     else
     {
-        std::cout << key << " is not removed" << std::endl;
+        ;
+        // std::cout << key << " is not removed" << std::endl;
     }
 }
 
@@ -278,6 +289,31 @@ T HashTable<T>::Get(std::string key) const
     // TODO: IMPLEMENT THIS FUNCTION. IT SHOULD RETURN THE VALUE THAT
     // IT SHOULD RETURN THE VALUE THAT CORRESPONDS TO THE GIVEN KEY.
     // IF THE KEY DOES NOT EXIST, THIS FUNCTION MUST RETURN T()
+
+    int h = 0;
+    bool thereis = false;
+
+    while (!thereis && (h * h) < _capacity)
+    {
+        int index = (Hash(key) + h * h) % _capacity;
+        // std::cout << "trying to remove with key " << index << std::endl;
+
+        for (int k = 0; k < 3; k++)
+        {
+            // std::cout << _table[index].entries[k].Key << " ? " << key << std::endl;
+            if (_table[index].entries[k].Key == key)
+            {
+                // std::cout << key << " is in hash table" << std::endl;
+
+                thereis = true;
+                return _table[index].entries[k].Value;
+                break;
+            }
+        }
+        h++;
+    }
+
+    return T();
 }
 
 template <class T>
@@ -350,7 +386,7 @@ void HashTable<T>::Resize(int newCapacity)
     delete[] _table;
 
     this->_table = newTable;
-    std::cout << "new table size: " << std::endl;
+    // std::cout << "new table size: " << _capacity << std::endl;
 }
 
 template <class T>
@@ -358,6 +394,10 @@ double HashTable<T>::getAvgSuccessfulProbe()
 {
     // TODO: IMPLEMENT THIS FUNCTION.
     // RETURNS THE AVERAGE NUMBER OF PROBES FOR SUCCESSFUL SEARCH
+    double load_factor = ((double)_size) / (3 * ((double)_capacity));
+
+    return (1 / load_factor) * log(1 / (1 - load_factor));
+    // return 1 / load_factor;
 }
 
 template <class T>
@@ -365,6 +405,8 @@ double HashTable<T>::getAvgUnsuccessfulProbe()
 {
     // TODO: IMPLEMENT THIS FUNCTION.
     // RETURNS THE AVERAGE NUMBER OF PROBES FOR UNSUCCESSFUL SEARCH
+    double load_factor = ((double)_size) / (3 * (double)_capacity);
+    return (1 / (1 - load_factor));
 }
 
 template <class T>

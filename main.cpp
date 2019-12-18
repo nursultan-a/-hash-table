@@ -108,7 +108,6 @@ int main()
     for (int i = 0; i < books.size(); i++)
     {
         table.Insert(books[i].getIsbn(), books[i]);
-        cout << i << endl;
     }
 
     Describe("Size", 3);
@@ -118,4 +117,8 @@ int main()
 
     table.Delete(books[5].getIsbn());
     cout << "table size: " << table.Size() << endl;
+
+    table.Get(books[9].getIsbn());
+
+    HashTable<Book> tttk(table);
 }
