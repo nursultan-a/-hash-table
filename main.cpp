@@ -121,4 +121,5 @@ int main()
     table.Get(books[9].getIsbn());
 
     HashTable<Book> tttk(table);
+    cout << "avg successful probe: " << tttk.getAvgSuccessfulProbe() << endl;
 }

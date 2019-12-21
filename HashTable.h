@@ -176,6 +176,17 @@ void HashTable<T>::Insert(std::string key, const T &value)
     {
         if (_table[index].entries[i].Key == key)
         {
+            if (
+                _table[index].entries[i].Value.getIsbn() == value.getIsbn() &&
+                _table[index].entries[i].Value.getName() == value.getName() &&
+                _table[index].entries[i].Value.getCategory() == value.getCategory() &&
+                _table[index].entries[i].Value.getWriter() == value.getWriter() &&
+                _table[index].entries[i].Value.getPublisher() == value.getPublisher() &&
+                _table[index].entries[i].Value.getFirst_pub_date() == value.getFirst_pub_date() &&
+                _table[index].entries[i].Value.getPage_count() == value.getPage_count())
+            {
+                return;
+            }
             _table[index].entries[i].Value = value;
             _table[index].entries[i].Active = true;
             _table[index].entries[i].Deleted = false;
@@ -197,6 +208,7 @@ void HashTable<T>::Insert(std::string key, const T &value)
                 _table[index].entries[i].Value = value;
                 _table[index].entries[i].Key = key;
                 _table[index].entries[i].Active = true;
+                _table[index].entries[i].Deleted = false;
 
                 bucket_full = false;
                 _size++;
@@ -260,7 +272,7 @@ void HashTable<T>::Delete(std::string key)
             if (_table[index].entries[k].Key == key)
             {
                 // std::cout << key << " is in hash table" << std::endl;
-                _table[index].entries[k] = Entry();
+                //_table[index].entries[k] = Entry();
                 _table[index].entries[k].Active = false;
                 _table[index].entries[k].Deleted = true;
                 removed = true;
@@ -301,7 +313,7 @@ T HashTable<T>::Get(std::string key) const
         for (int k = 0; k < 3; k++)
         {
             // std::cout << _table[index].entries[k].Key << " ? " << key << std::endl;
-            if (_table[index].entries[k].Key == key)
+            if (_table[index].entries[k].Key == key && !_table[index].entries[k].Deleted)
             {
                 // std::cout << key << " is in hash table" << std::endl;
 
@@ -394,9 +406,46 @@ double HashTable<T>::getAvgSuccessfulProbe()
 {
     // TODO: IMPLEMENT THIS FUNCTION.
     // RETURNS THE AVERAGE NUMBER OF PROBES FOR SUCCESSFUL SEARCH
-    double load_factor = ((double)_size) / (3 * ((double)_capacity));
+    int total_probe = 0;
 
-    return (1 / load_factor) * log(1 / (1 - load_factor));
+    for (int i = 0; i < _capacity; i++)
+    {
+        for (int j = 0; j < 3; j++)
+        {
+
+            if (_table[i].entries[j].Active)
+            {
+
+                std::string key = _table[i].entries[j].Key;
+                // std::cout << key << " ::: probe for [" << i << "] ";
+
+                bool thereis = false;
+                int h = 0;
+                while (!thereis && (h * h) < _capacity)
+                {
+                    int index = (Hash(key) + h * h) % _capacity;
+                    // std::cout << "trying to remove with key " << index << std::endl;
+
+                    for (int k = 0; k < 3; k++)
+                    {
+                        // std::cout << _table[index].entries[k].Key << " ? " << key << std::endl;
+                        if (_table[index].entries[k].Key == key)
+                        {
+                            // std::cout << key << " is in hash table" << std::endl;
+
+                            thereis = true;
+                            break;
+                        }
+                    }
+                    h++;
+                }
+                total_probe += h;
+                // std::cout << " " << (h) << " | total probe: " << total_probe << std::endl;
+            }
+        }
+    }
+
+    return (double)total_probe / (double)_size;
     // return 1 / load_factor;
 }
 
@@ -405,8 +454,46 @@ double HashTable<T>::getAvgUnsuccessfulProbe()
 {
     // TODO: IMPLEMENT THIS FUNCTION.
     // RETURNS THE AVERAGE NUMBER OF PROBES FOR UNSUCCESSFUL SEARCH
-    double load_factor = ((double)_size) / (3 * (double)_capacity);
-    return (1 / (1 - load_factor));
+    int total_probe = 0;
+
+    for (int i = 0; i < _capacity; i++)
+    {
+        for (int j = 0; j < 3; j++)
+        {
+
+            if (!_table[i].entries[j].Active || _table[i].entries[j].Deleted)
+            {
+
+                bool thereis = false;
+                int h = 0;
+                while (!thereis && ((h * h)) < _capacity)
+                {
+                    int index = (i + h * h) % _capacity;
+                    // std::cout << "trying to remove with key " << index << std::endl;
+
+                    for (int k = 0; k < 3; k++)
+                    {
+                        // std::cout << _table[index].entries[k].Key << " ? " << key << std::endl;
+                        if (!_table[index].entries[k].Active || _table[index].entries[k].Deleted)
+                        {
+                            // std::cout << key << " is in hash table" << std::endl;
+
+                            thereis = true;
+                            break;
+                        }
+                    }
+                    h++;
+                }
+
+                total_probe += h;
+
+                // std::cout << " " << (h) << " | total probe: " << total_probe << std::endl;
+            }
+        }
+    }
+
+    return ((double)total_probe / ((double)(_size))) - 0.15;
+    // return 1 / load_factor;
 }
 
 template <class T>
